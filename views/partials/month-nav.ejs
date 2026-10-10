@@ -1,0 +1,6 @@
+<form method="get" class="flex items-center gap-1">
+  <% Object.entries(typeof keep !== 'undefined' ? keep : {}).forEach(([k, val]) => { if (val) { %><input type="hidden" name="<%= k %>" value="<%= val %>"><% } }) %>
+  <a class="btn btn-ghost !px-2.5" href="?<%= new URLSearchParams(Object.assign({}, typeof keep !== 'undefined' ? keep : {}, { month: per.prev })).toString() %>" aria-label="Bulan sebelumnya">&lsaquo;</a>
+  <input type="month" name="month" value="<%= per.month %>" class="field !w-auto" onchange="this.form.submit()" aria-label="Pilih bulan">
+  <a class="btn btn-ghost !px-2.5" href="?<%= new URLSearchParams(Object.assign({}, typeof keep !== 'undefined' ? keep : {}, { month: per.next })).toString() %>" aria-label="Bulan berikutnya">&rsaquo;</a>
+</form>

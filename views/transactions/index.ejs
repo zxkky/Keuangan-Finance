@@ -1,0 +1,81 @@
+<% const income = type === 'income'; %>
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title"><%= label %></h1>
+    <p class="text-sm text-muted mt-0.5"><%= per.label %>: <span class="font-semibold text-ink tabular-nums"><%= rupiah(total) %></span> dari <%= rows.length %> transaksi</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <%- include('../partials/month-nav', { keep: { business_id: filters.businessId, category_id: filters.categoryId } }) %>
+    <% if (canManage) { %><button class="btn btn-primary" data-open="dlg-tx">Tambah <%= label.toLowerCase() %></button><% } %>
+  </div>
+</div>
+
+<form method="get" class="flex flex-wrap gap-2 mb-4">
+  <input type="hidden" name="month" value="<%= per.month %>">
+  <select name="business_id" class="field !w-auto" aria-label="Filter usaha" onchange="this.form.submit()">
+    <option value="">Semua usaha</option>
+    <% businesses.forEach(b => { %><option value="<%= b.id %>" <%= filters.businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+  </select>
+  <select name="category_id" class="field !w-auto" aria-label="Filter kategori" onchange="this.form.submit()">
+    <option value="">Semua kategori</option>
+    <% categories.forEach(c => { %><option value="<%= c.id %>" <%= filters.categoryId === c.id ? 'selected' : '' %>><%= c.name %></option><% }) %>
+  </select>
+</form>
+
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Tanggal</th><th class="th">Keterangan</th><th class="th">Kategori</th><th class="th">Usaha</th><th class="th">Akun</th><th class="th num">Nominal</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% rows.forEach(r => { %>
+        <tr>
+          <td class="td whitespace-nowrap"><%= tanggal(r.transaction_date) %></td>
+          <td class="td"><%= r.description || '-' %><% if (r.sale_id) { %> <span class="text-xs text-muted">(Penjualan #<%= r.sale_id %>)</span><% } %></td>
+          <td class="td"><%= r.category %></td>
+          <td class="td"><%= r.business || 'Umum' %></td>
+          <td class="td"><%= r.account %></td>
+          <td class="td num font-medium <%= income ? 'text-primary-dark' : 'text-loss' %>"><%= rupiah(r.amount) %></td>
+          <td class="td text-right">
+            <% if (canManage && !r.sale_id) { %>
+              <form method="post" action="/transaksi/<%= r.id %>/hapus" data-confirm="Hapus transaksi ini?">
+                <input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!rows.length) { %><tr><td class="td text-muted" colspan="7">Belum ada <%= label.toLowerCase() %> di <%= per.label %>.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+
+<% if (canManage) { %>
+<dialog id="dlg-tx" class="dlg">
+  <form method="post" action="/transaksi" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <input type="hidden" name="type" value="<%= type %>">
+    <h2 class="font-display text-lg font-bold">Tambah <%= label.toLowerCase() %></h2>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="col-span-2"><label class="lbl" for="tx-cat">Kategori</label>
+        <select id="tx-cat" name="category_id" class="field" required>
+          <% categories.forEach(c => { %><option value="<%= c.id %>"><%= c.name %></option><% }) %>
+        </select></div>
+      <div class="col-span-2"><label class="lbl" for="tx-biz">Usaha (opsional)</label>
+        <select id="tx-biz" name="business_id" class="field">
+          <option value="">Umum, tidak terkait usaha</option>
+          <% businesses.forEach(b => { %><option value="<%= b.id %>"><%= b.name %></option><% }) %>
+        </select></div>
+      <div><label class="lbl" for="tx-amt">Nominal (Rp)</label><input id="tx-amt" name="amount" type="number" min="1" step="any" class="field" required></div>
+      <div><label class="lbl" for="tx-acc"><%= income ? 'Masuk ke akun' : 'Dibayar dari akun' %></label>
+        <select id="tx-acc" name="account_id" class="field" required>
+          <% accounts.forEach(a => { %><option value="<%= a.id %>"><%= a.name %></option><% }) %>
+        </select></div>
+      <div><label class="lbl" for="tx-date">Tanggal</label><input id="tx-date" name="transaction_date" type="date" value="<%= today() %>" class="field" required></div>
+      <div><label class="lbl" for="tx-desc">Keterangan</label><input id="tx-desc" name="description" maxlength="255" class="field" placeholder="<%= income ? 'Jasa desain poster' : 'Beli bahan kaos' %>"></div>
+    </div>
+    <div class="flex justify-end gap-2 pt-2">
+      <button type="button" class="btn btn-ghost" data-close>Batal</button>
+      <button class="btn btn-primary">Simpan</button>
+    </div>
+  </form>
+</dialog>
+<% } %>

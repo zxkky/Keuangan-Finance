@@ -1,0 +1,81 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Produk</h1>
+    <p class="text-sm text-muted mt-0.5">HPP adalah biaya per unit. Saat produk terjual, sistem otomatis mencatat laba kotor dan mengurangi stok.</p>
+  </div>
+  <% if (canManage) { %><button class="btn btn-primary" data-open="dlg-prod">Tambah produk</button><% } %>
+</div>
+<form method="get" class="flex flex-wrap items-center gap-3 mb-4">
+  <select name="business_id" class="field !w-auto" aria-label="Filter usaha" onchange="this.form.submit()">
+    <option value="">Semua usaha</option>
+    <% businesses.forEach(b => { %><option value="<%= b.id %>" <%= filters.businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+  </select>
+  <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="arsip" value="1" <%= filters.showArchived ? 'checked' : '' %> onchange="this.form.submit()"> Tampilkan produk diarsipkan</label>
+</form>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Produk</th><th class="th">Usaha</th><th class="th num">Stok</th><th class="th num">HPP</th><th class="th num">Harga jual</th><th class="th num">Laba/unit</th><th class="th num">Margin</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% products.forEach(p => { const unit = p.selling_price - p.cost_price; %>
+        <tr class="<%= p.is_active ? '' : 'opacity-60' %>">
+          <td class="td font-medium"><%= p.name %><% if (p.sku) { %> <span class="text-xs text-muted"><%= p.sku %></span><% } %><% if (!p.is_active) { %> <span class="text-xs text-muted">(arsip)</span><% } %></td>
+          <td class="td"><%= p.business %></td>
+          <td class="td num <%= p.stock <= 5 ? 'text-warn font-semibold' : '' %>"><%= p.stock %></td>
+          <td class="td num"><%= rupiah(p.cost_price) %></td>
+          <td class="td num"><%= rupiah(p.selling_price) %></td>
+          <td class="td num <%= unit < 0 ? 'text-loss' : '' %>"><%= rupiah(unit) %></td>
+          <td class="td num"><%= p.selling_price > 0 ? persen(unit / p.selling_price * 100) : '-' %></td>
+          <td class="td text-right whitespace-nowrap">
+            <% if (canManage) { %>
+              <button class="btn-link" data-open="dlg-restock" data-action="/produk/<%= p.id %>/restok" data-json="<%= JSON.stringify({ date: todayStr }) %>">Restok</button>
+              <button class="btn-link ml-3" data-open="dlg-prod" data-action="/produk/<%= p.id %>" data-json="<%= JSON.stringify({ name: p.name, sku: p.sku, cost_price: p.cost_price, selling_price: p.selling_price }) %>">Ubah</button>
+              <form method="post" action="/produk/<%= p.id %>/arsip" class="inline ml-3"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-link"><%= p.is_active ? 'Arsipkan' : 'Aktifkan' %></button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (!products.length) { %><tr><td class="td text-muted" colspan="8">Belum ada produk. Tambahkan produk dan atur HPP serta harga jualnya.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<% if (canManage) { %>
+<dialog id="dlg-prod" class="dlg">
+  <form method="post" action="/produk" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold"><span data-new-title="Tambah produk" data-edit-title="Ubah produk">Tambah produk</span></h2>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="col-span-2"><label class="lbl" for="p-name">Nama produk</label><input id="p-name" name="name" class="field" maxlength="150" required placeholder="T-Shirt"></div>
+      <div class="col-span-2 new-only"><label class="lbl" for="p-biz">Usaha</label>
+        <select id="p-biz" name="business_id" class="field"><% businesses.forEach(b => { %><option value="<%= b.id %>" <%= filters.businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %></select></div>
+      <div><label class="lbl" for="p-cost">HPP per unit (Rp)</label><input id="p-cost" name="cost_price" type="number" min="0" step="any" value="0" class="field" required></div>
+      <div><label class="lbl" for="p-price">Harga jual (Rp)</label><input id="p-price" name="selling_price" type="number" min="1" step="any" class="field" required></div>
+      <div><label class="lbl" for="p-sku">SKU (opsional)</label><input id="p-sku" name="sku" maxlength="50" class="field"></div>
+      <div class="new-only"><label class="lbl" for="p-stock">Stok awal</label><input id="p-stock" name="stock" type="number" min="0" step="1" value="0" class="field"></div>
+    </div>
+    <p class="text-xs text-muted edit-note hidden">Usaha dan stok tidak diubah di sini. Gunakan Restok atau koreksi di menu Stok.</p>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<dialog id="dlg-restock" class="dlg">
+  <form method="post" action="/produk" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Restok produk</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="r-qty">Jumlah masuk</label><input id="r-qty" name="quantity" type="number" min="1" step="1" class="field" required></div>
+      <div><label class="lbl" for="r-cost">Total biaya (Rp)</label><input id="r-cost" name="total_cost" type="number" min="0" step="any" value="0" class="field"></div>
+      <div><label class="lbl" for="r-acc">Dibayar dari akun</label><select id="r-acc" name="account_id" class="field"><% accounts.forEach(a => { %><option value="<%= a.id %>"><%= a.name %></option><% }) %></select></div>
+      <div><label class="lbl" for="r-date">Tanggal</label><input id="r-date" name="date" type="date" class="field" required></div>
+    </div>
+    <p class="text-xs text-muted">Jika total biaya diisi, HPP produk dihitung ulang (rata-rata tertimbang) dan biaya tercatat sebagai pengeluaran Pembelian Stok. Pembelian stok tidak mengurangi laba sampai barangnya terjual.</p>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Tambah stok</button></div>
+  </form>
+</dialog>
+<script>
+  // Sembunyikan kolom khusus produk baru saat mengubah produk.
+  document.querySelectorAll('[data-open="dlg-prod"]').forEach((b) => b.addEventListener('click', () => {
+    const editing = !!b.dataset.json;
+    document.querySelectorAll('#dlg-prod .new-only').forEach((el) => el.classList.toggle('hidden', editing));
+    document.querySelector('#dlg-prod .edit-note').classList.toggle('hidden', !editing);
+  }));
+</script>
+<% } %>

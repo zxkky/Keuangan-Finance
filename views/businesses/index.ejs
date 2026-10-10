@@ -1,0 +1,52 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Daftar usaha</h1>
+    <p class="text-sm text-muted mt-0.5">Setiap usaha punya produk, modal awal, dan laporan labanya sendiri. Angka di bawah adalah total sejak awal.</p>
+  </div>
+  <% if (canManage) { %><button class="btn btn-primary" data-open="dlg-biz">Tambah usaha</button><% } %>
+</div>
+<div class="grid md:grid-cols-2 gap-4">
+  <% businesses.forEach(b => { %>
+    <article class="card p-5 <%= b.status === 'nonaktif' ? 'opacity-70' : '' %>">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="font-display text-lg font-bold"><%= b.name %></h2>
+          <p class="text-sm text-muted"><%= b.status === 'aktif' ? 'Aktif' : 'Nonaktif' %><% if (b.start_date) { %>, mulai <%= tanggal(b.start_date) %><% } %></p>
+        </div>
+        <% if (canManage) { %><button class="btn-link" data-open="dlg-biz" data-action="/usaha/<%= b.id %>" data-json="<%= JSON.stringify({ name: b.name, description: b.description, initial_capital: b.initial_capital, status: b.status, start_date: b.start_date }) %>">Ubah</button><% } %>
+      </div>
+      <% if (b.description) { %><p class="text-sm mt-2"><%= b.description %></p><% } %>
+      <dl class="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        <dt class="text-muted">Modal awal</dt><dd class="num"><%= rupiah(b.initial_capital) %></dd>
+        <dt class="text-muted">Total omzet</dt><dd class="num"><%= rupiah(b.revenue) %></dd>
+        <dt class="text-muted">Total HPP</dt><dd class="num"><%= rupiah(b.hpp) %></dd>
+        <dt class="text-muted">Laba kotor</dt><dd class="num"><%= rupiah(b.gross) %></dd>
+        <dt class="font-semibold">Profit bersih</dt><dd class="num font-semibold <%= b.net < 0 ? 'text-loss' : '' %>"><%= rupiah(b.net) %></dd>
+      </dl>
+      <div class="mt-4 flex items-center gap-4 text-sm">
+        <a class="btn-link" href="/produk?business_id=<%= b.id %>">Produk</a>
+        <a class="btn-link" href="/laporan/laba-rugi?business_id=<%= b.id %>&from=<%= b.start_date || '2000-01-01' %>">Laba rugi</a>
+        <% if (isAdmin) { %>
+          <form method="post" action="/usaha/<%= b.id %>/hapus" class="ml-auto" data-confirm="Hapus usaha ini? Hanya bisa jika belum punya data."><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button></form>
+        <% } %>
+      </div>
+    </article>
+  <% }) %>
+  <% if (!businesses.length) { %><p class="text-sm text-muted">Belum ada usaha. Tambahkan usaha pertama, misalnya Merchandise.</p><% } %>
+</div>
+<% if (canManage) { %>
+<dialog id="dlg-biz" class="dlg">
+  <form method="post" action="/usaha" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold"><span data-new-title="Tambah usaha" data-edit-title="Ubah usaha">Tambah usaha</span></h2>
+    <div><label class="lbl" for="biz-name">Nama usaha</label><input id="biz-name" name="name" class="field" maxlength="120" required placeholder="Merchandise"></div>
+    <div><label class="lbl" for="biz-desc">Deskripsi</label><textarea id="biz-desc" name="description" rows="2" maxlength="1000" class="field"></textarea></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="biz-cap">Modal awal (Rp)</label><input id="biz-cap" name="initial_capital" type="number" min="0" step="any" value="0" class="field"></div>
+      <div><label class="lbl" for="biz-start">Tanggal mulai</label><input id="biz-start" name="start_date" type="date" class="field"></div>
+      <div><label class="lbl" for="biz-status">Status</label><select id="biz-status" name="status" class="field"><option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option></select></div>
+    </div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<% } %>

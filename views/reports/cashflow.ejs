@@ -1,0 +1,24 @@
+<h1 class="page-title mb-1">Laporan cash flow</h1>
+<p class="text-sm text-muted mb-5"><%= tanggal(from) %> sampai <%= tanggal(to) %>, <%= business ? business.name : 'semua usaha' %></p>
+<%- include('../partials/report-filter', { kind: 'cash-flow' }) %>
+
+<section class="card p-5 max-w-2xl text-sm">
+  <% if (cf.opening !== null) { %>
+    <div class="flex justify-between font-semibold pb-3 border-b border-line"><span>Saldo awal</span><span class="tabular-nums"><%= rupiah(cf.opening) %></span></div>
+  <% } %>
+  <h2 class="font-semibold mt-4 mb-1">Uang masuk</h2>
+  <% cf.inflow.forEach(i => { %><div class="flex justify-between py-1.5 pl-5"><span><%= i.name %></span><span class="tabular-nums text-primary-dark">+<%= rupiah(i.total) %></span></div><% }) %>
+  <% if (!cf.inflow.length) { %><p class="pl-5 py-1.5 text-muted">Tidak ada uang masuk.</p><% } %>
+  <div class="flex justify-between font-semibold border-t border-line mt-1 pt-2"><span>Total uang masuk</span><span class="tabular-nums"><%= rupiah(cf.totalIn) %></span></div>
+
+  <h2 class="font-semibold mt-5 mb-1">Uang keluar</h2>
+  <% cf.outflow.forEach(i => { %><div class="flex justify-between py-1.5 pl-5"><span><%= i.name %></span><span class="tabular-nums text-loss">-<%= rupiah(i.total) %></span></div><% }) %>
+  <% if (!cf.outflow.length) { %><p class="pl-5 py-1.5 text-muted">Tidak ada uang keluar.</p><% } %>
+  <div class="flex justify-between font-semibold border-t border-line mt-1 pt-2"><span>Total uang keluar</span><span class="tabular-nums"><%= rupiah(cf.totalOut) %></span></div>
+
+  <div class="mt-5 bg-paper rounded-sm px-3 py-2 flex justify-between font-semibold"><span>Net cash flow</span><span class="tabular-nums <%= cf.net < 0 ? 'text-loss' : '' %>"><%= rupiah(cf.net) %></span></div>
+  <% if (cf.closing !== null) { %>
+    <div class="flex justify-between font-semibold pt-3"><span>Saldo akhir</span><span class="tabular-nums"><%= rupiah(cf.closing) %></span></div>
+  <% } %>
+  <p class="text-xs text-muted mt-4">Transfer antar akun tidak dihitung. Pembelian stok dihitung sebagai uang keluar di sini, tetapi baru menjadi HPP di laba rugi saat barang terjual.</p>
+</section>

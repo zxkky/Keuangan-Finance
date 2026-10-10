@@ -1,0 +1,55 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Pengguna</h1>
+    <p class="text-sm text-muted mt-0.5 max-w-xl">Admin mengelola semua fitur. Bendahara mengelola keuangan dan usaha. Anggota Keuangan hanya bisa melihat.</p>
+  </div>
+  <button class="btn btn-primary" data-open="dlg-user">Tambah pengguna</button>
+</div>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Nama</th><th class="th">Email</th><th class="th">Role</th><th class="th">Status</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% users.forEach(u => { %>
+        <tr class="<%= u.is_active ? '' : 'opacity-60' %>">
+          <td class="td font-medium"><%= u.name %><% if (u.id === user.id) { %> <span class="text-xs text-muted">(Anda)</span><% } %></td>
+          <td class="td"><%= u.email %></td>
+          <td class="td"><%= { admin: 'Admin', bendahara: 'Bendahara', anggota: 'Anggota Keuangan' }[u.role] %></td>
+          <td class="td"><%= u.is_active ? 'Aktif' : 'Nonaktif' %></td>
+          <td class="td text-right whitespace-nowrap">
+            <button class="btn-link" data-open="dlg-edit-user" data-action="/pengguna/<%= u.id %>" data-json="<%= JSON.stringify({ name: u.name, role: u.role, is_active: u.is_active }) %>">Ubah</button>
+            <% if (u.id !== user.id) { %>
+              <form method="post" action="/pengguna/<%= u.id %>/hapus" class="inline ml-3" data-confirm="Hapus pengguna ini?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<dialog id="dlg-user" class="dlg">
+  <form method="post" action="/pengguna" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Tambah pengguna</h2>
+    <div><label class="lbl" for="u-name">Nama</label><input id="u-name" name="name" maxlength="100" class="field" required></div>
+    <div><label class="lbl" for="u-email">Email</label><input id="u-email" name="email" type="email" class="field" required></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="u-role">Role</label><select id="u-role" name="role" class="field"><option value="anggota">Anggota Keuangan</option><option value="bendahara">Bendahara</option><option value="admin">Admin</option></select></div>
+      <div><label class="lbl" for="u-pass">Password awal</label><input id="u-pass" name="password" type="password" minlength="8" autocomplete="new-password" class="field" required></div>
+    </div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<dialog id="dlg-edit-user" class="dlg">
+  <form method="post" action="/pengguna" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Ubah pengguna</h2>
+    <div><label class="lbl" for="e-name">Nama</label><input id="e-name" name="name" maxlength="100" class="field" required></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="e-role">Role</label><select id="e-role" name="role" class="field"><option value="anggota">Anggota Keuangan</option><option value="bendahara">Bendahara</option><option value="admin">Admin</option></select></div>
+      <div><label class="lbl" for="e-active">Status</label><select id="e-active" name="is_active" class="field"><option value="1">Aktif</option><option value="0">Nonaktif</option></select></div>
+    </div>
+    <div><label class="lbl" for="e-pass">Password baru (kosongkan jika tidak diganti)</label><input id="e-pass" name="password" type="password" minlength="8" autocomplete="new-password" class="field"></div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>

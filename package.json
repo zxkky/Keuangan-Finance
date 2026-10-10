@@ -1,0 +1,25 @@
+{
+  "name": "keuangan-finance",
+  "version": "1.0.0",
+  "description": "Sistem Manajemen Keuangan dan Usaha",
+  "private": true,
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "setup": "node scripts/setup.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.5",
+    "ejs": "^7.0.1",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "express-ejs-layouts": "^2.5.1",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "mysql2": "^3.24.5",
+    "pdfkit": "^0.20.2"
+  }
+}

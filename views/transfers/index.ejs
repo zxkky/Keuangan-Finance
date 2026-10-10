@@ -1,0 +1,45 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Transfer antar akun</h1>
+    <p class="text-sm text-muted mt-0.5 max-w-xl">Memindahkan uang dari satu akun ke akun lain. Total uang keuangan tidak berubah, jadi transfer tidak masuk pemasukan atau pengeluaran.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <%- include('../partials/month-nav') %>
+    <% if (canManage) { %><button class="btn btn-primary" data-open="dlg-tr">Tambah transfer</button><% } %>
+  </div>
+</div>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Tanggal</th><th class="th">Dari</th><th class="th">Ke</th><th class="th">Keterangan</th><th class="th num">Nominal</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% rows.forEach(r => { %>
+        <tr>
+          <td class="td whitespace-nowrap"><%= tanggal(r.transfer_date) %></td>
+          <td class="td"><%= r.from_name %></td><td class="td"><%= r.to_name %></td>
+          <td class="td"><%= r.description || '-' %></td>
+          <td class="td num font-medium"><%= rupiah(r.amount) %></td>
+          <td class="td text-right"><% if (canManage) { %>
+            <form method="post" action="/transfer/<%= r.id %>/hapus" data-confirm="Hapus transfer ini?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button></form>
+          <% } %></td>
+        </tr>
+      <% }) %>
+      <% if (!rows.length) { %><tr><td class="td text-muted" colspan="6">Belum ada transfer di <%= per.label %>.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<% if (canManage) { %>
+<dialog id="dlg-tr" class="dlg">
+  <form method="post" action="/transfer" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Tambah transfer</h2>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="tr-from">Dari akun</label><select id="tr-from" name="from_account_id" class="field" required><% accounts.forEach(a => { %><option value="<%= a.id %>"><%= a.name %></option><% }) %></select></div>
+      <div><label class="lbl" for="tr-to">Ke akun</label><select id="tr-to" name="to_account_id" class="field" required><% accounts.forEach((a, i) => { %><option value="<%= a.id %>" <%= i === 1 ? 'selected' : '' %>><%= a.name %></option><% }) %></select></div>
+      <div><label class="lbl" for="tr-amt">Nominal (Rp)</label><input id="tr-amt" name="amount" type="number" min="1" step="any" class="field" required></div>
+      <div><label class="lbl" for="tr-date">Tanggal</label><input id="tr-date" name="transfer_date" type="date" value="<%= today() %>" class="field" required></div>
+      <div class="col-span-2"><label class="lbl" for="tr-desc">Keterangan</label><input id="tr-desc" name="description" maxlength="255" class="field"></div>
+    </div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<% } %>

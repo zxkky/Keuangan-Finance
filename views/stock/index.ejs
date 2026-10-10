@@ -1,0 +1,57 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Stok</h1>
+    <p class="text-sm text-muted mt-0.5">Produk dengan stok paling sedikit tampil paling atas. Stok 5 atau kurang ditandai kuning.</p>
+  </div>
+  <form method="get">
+    <select name="business_id" class="field !w-auto" aria-label="Filter usaha" onchange="this.form.submit()">
+      <option value="">Semua usaha</option>
+      <% businesses.forEach(b => { %><option value="<%= b.id %>" <%= filters.businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+    </select>
+  </form>
+</div>
+<div class="card overflow-x-auto mb-8">
+  <table class="w-full">
+    <thead><tr><th class="th">Produk</th><th class="th">Usaha</th><th class="th num">Stok</th><th class="th num">Nilai stok (HPP)</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% products.forEach(p => { %>
+        <tr>
+          <td class="td font-medium"><%= p.name %></td><td class="td"><%= p.business %></td>
+          <td class="td num <%= p.stock <= 5 ? 'text-warn font-semibold' : '' %>"><%= p.stock %></td>
+          <td class="td num"><%= rupiah(p.stock * p.cost_price) %></td>
+          <td class="td text-right"><% if (canManage) { %><button class="btn-link" data-open="dlg-adj" data-action="/stok/<%= p.id %>/koreksi" data-json="<%= JSON.stringify({ new_stock: p.stock }) %>">Koreksi stok</button><% } %></td>
+        </tr>
+      <% }) %>
+      <% if (!products.length) { %><tr><td class="td text-muted" colspan="5">Belum ada produk aktif.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<h2 class="font-display text-lg font-bold mb-2">Riwayat stok terbaru</h2>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Waktu</th><th class="th">Produk</th><th class="th">Jenis</th><th class="th num">Jumlah</th><th class="th">Catatan</th><th class="th">Oleh</th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% movements.forEach(m => { %>
+        <tr>
+          <td class="td whitespace-nowrap"><%= tanggal(m.created_at) %></td>
+          <td class="td"><%= m.product %></td>
+          <td class="td"><%= { in: 'Masuk', out: 'Keluar', adjust: 'Koreksi', void: 'Pembatalan' }[m.type] %></td>
+          <td class="td num <%= m.quantity < 0 ? 'text-loss' : 'text-primary-dark' %>"><%= m.quantity > 0 ? '+' : '' %><%= m.quantity %></td>
+          <td class="td"><%= m.note || '-' %></td><td class="td"><%= m.user_name || '-' %></td>
+        </tr>
+      <% }) %>
+      <% if (!movements.length) { %><tr><td class="td text-muted" colspan="6">Belum ada pergerakan stok.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>
+<% if (canManage) { %>
+<dialog id="dlg-adj" class="dlg">
+  <form method="post" action="/stok" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Koreksi stok</h2>
+    <div><label class="lbl" for="a-stock">Stok fisik hasil hitung</label><input id="a-stock" name="new_stock" type="number" min="0" step="1" class="field" required></div>
+    <div><label class="lbl" for="a-note">Alasan koreksi</label><input id="a-note" name="note" maxlength="200" class="field" required placeholder="Stok opname, barang rusak, dll."></div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan koreksi</button></div>
+  </form>
+</dialog>
+<% } %>

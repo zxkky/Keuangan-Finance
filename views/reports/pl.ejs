@@ -1,0 +1,40 @@
+<%
+  const line = (label, val, opts = {}) => `<div class="flex justify-between py-1.5 ${opts.bold ? 'font-semibold' : ''} ${opts.indent ? 'pl-5 text-ink/90' : ''} ${opts.top ? 'border-t border-line mt-1 pt-2' : ''}"><span>${label}</span><span class="tabular-nums ${val < 0 ? 'text-loss' : ''}">${rupiah(val)}</span></div>`;
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+%>
+<h1 class="page-title mb-1">Laporan laba rugi</h1>
+<p class="text-sm text-muted mb-5"><%= tanggal(from) %> sampai <%= tanggal(to) %>, <%= business ? business.name : 'semua usaha' %></p>
+<%- include('../partials/report-filter', { kind: 'laba-rugi' }) %>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <section class="card p-5 lg:col-span-2 text-sm">
+    <h2 class="font-semibold mb-1">Pendapatan</h2>
+    <% pl.revenue.forEach(i => { %><%- line(esc(i.name), i.total, { indent: true }) %><% }) %>
+    <%- line('Total pendapatan', pl.revenueTotal, { bold: true, top: true }) %>
+
+    <h2 class="font-semibold mt-5 mb-1">Harga pokok penjualan</h2>
+    <% if (pl.salesHpp) { %><%- line('HPP produk terjual', pl.salesHpp, { indent: true }) %><% } %>
+    <% pl.cogs.forEach(i => { %><%- line(esc(i.name), i.total, { indent: true }) %><% }) %>
+    <%- line('Total HPP', pl.hppTotal, { bold: true, top: true }) %>
+    <div class="mt-3 bg-paper rounded-sm px-3 py-1"><%- line('Laba kotor', pl.grossProfit, { bold: true }) %></div>
+
+    <h2 class="font-semibold mt-5 mb-1">Biaya operasional</h2>
+    <% pl.opex.forEach(i => { %><%- line(esc(i.name), i.total, { indent: true }) %><% }) %>
+    <%- line('Total operasional', pl.opexTotal, { bold: true, top: true }) %>
+    <% if (pl.otherIncomeTotal) { %><%- line('Pendapatan lain-lain', pl.otherIncomeTotal) %><% } %>
+    <div class="mt-4 bg-ink text-white rounded-sm px-3 py-1 [&_span]:!text-white"><%- line('Profit bersih', pl.netProfit, { bold: true }) %></div>
+  </section>
+
+  <aside class="space-y-4">
+    <div class="card p-5 text-sm">
+      <div class="flex justify-between"><span class="text-muted">Gross margin</span><span class="font-semibold tabular-nums"><%= persen(pl.grossMargin) %></span></div>
+      <div class="flex justify-between mt-2"><span class="text-muted">Net profit margin</span><span class="font-semibold tabular-nums"><%= persen(pl.netMargin) %></span></div>
+      <p class="text-xs text-muted mt-3">Gross margin = laba kotor / omzet. Net profit margin = profit bersih / omzet.</p>
+    </div>
+    <div class="border-l-4 px-4 py-3 text-sm bg-white <%= { sehat: 'border-primary', waspada: 'border-warn', perhatian: 'border-loss', kosong: 'border-line' }[health.level] %>">
+      <div class="font-semibold"><%= health.title %></div>
+      <div class="text-ink/80"><%= health.message %></div>
+    </div>
+    <p class="text-xs text-muted">Modal, pinjaman, dan pembelian stok tidak masuk laba rugi. Ketiganya muncul di laporan cash flow.</p>
+  </aside>
+</div>

@@ -1,0 +1,70 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Analitik</h1>
+    <p class="text-sm text-muted mt-0.5">Performa produk dan usaha pada <%= per.label %></p>
+  </div>
+  <%- include('../partials/month-nav') %>
+</div>
+
+<% if (insights.length) { %>
+<section class="card p-5 mb-6" aria-labelledby="ringkas-judul">
+  <h2 id="ringkas-judul" class="font-display text-lg font-bold mb-2">Ringkasan otomatis</h2>
+  <ul class="space-y-1.5 text-sm list-disc pl-5">
+    <% insights.forEach(t => { %><li><%= t %></li><% }) %>
+  </ul>
+</section>
+<% } %>
+
+<div class="grid lg:grid-cols-2 gap-6 mb-6">
+  <section class="card p-5" aria-labelledby="tren-judul">
+    <h2 id="tren-judul" class="font-display text-lg font-bold mb-3">Tren profit bersih</h2>
+    <div class="h-60"><canvas id="c-tren"></canvas></div>
+  </section>
+  <section class="card p-5" aria-labelledby="banding-judul">
+    <h2 id="banding-judul" class="font-display text-lg font-bold mb-3">Perbandingan usaha</h2>
+    <% if (perf.length) { %><div class="h-60"><canvas id="c-usaha"></canvas></div>
+    <% } else { %><p class="text-sm text-muted">Belum ada aktivitas usaha di bulan ini.</p><% } %>
+  </section>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <section class="card" aria-labelledby="laku-judul">
+    <h2 id="laku-judul" class="font-display text-lg font-bold p-5 pb-2">Produk paling laku</h2>
+    <div class="overflow-x-auto"><table class="w-full">
+      <thead><tr><th class="th">Produk</th><th class="th num">Terjual</th><th class="th num">Omzet</th></tr></thead>
+      <tbody class="divide-y divide-line">
+        <% topSelling.forEach(p => { %><tr><td class="td"><%= p.name %><div class="text-xs text-muted"><%= p.business %></div></td><td class="td num"><%= p.qty %></td><td class="td num"><%= rupiah(p.revenue) %></td></tr><% }) %>
+        <% if (!topSelling.length) { %><tr><td class="td text-muted" colspan="3">Belum ada penjualan di bulan ini.</td></tr><% } %>
+      </tbody></table></div>
+  </section>
+  <section class="card" aria-labelledby="untung-judul">
+    <h2 id="untung-judul" class="font-display text-lg font-bold p-5 pb-2">Produk paling menguntungkan</h2>
+    <div class="overflow-x-auto"><table class="w-full">
+      <thead><tr><th class="th">Produk</th><th class="th num">Laba/unit</th><th class="th num">Margin</th><th class="th num">Total laba</th></tr></thead>
+      <tbody class="divide-y divide-line">
+        <% topProfit.forEach(p => { %><tr><td class="td"><%= p.name %></td><td class="td num"><%= rupiah(p.unitProfit) %></td><td class="td num"><%= persen(p.margin) %></td><td class="td num font-medium"><%= rupiah(p.profit) %></td></tr><% }) %>
+        <% if (!topProfit.length) { %><tr><td class="td text-muted" colspan="4">Belum ada penjualan di bulan ini.</td></tr><% } %>
+      </tbody></table></div>
+  </section>
+</div>
+
+<script>
+  const tren = <%- json(series) %>;
+  const usaha = <%- json(perf) %>;
+  const tick = { callback: (v) => Math.abs(v) >= 1e6 ? (v / 1e6) + ' jt' : Math.abs(v) >= 1e3 ? (v / 1e3) + ' rb' : v };
+  const tip = { callbacks: { label: (c) => c.dataset.label + ': Rp' + Math.round(c.parsed.y).toLocaleString('id-ID') } };
+  new Chart(document.getElementById('c-tren'), {
+    type: 'line',
+    data: { labels: tren.map(x => x.label), datasets: [{ label: 'Profit bersih', data: tren.map(x => x.net), borderColor: '#0B7A68', backgroundColor: '#0B7A68', tension: 0.25, pointRadius: 3 }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip }, scales: { y: { ticks: tick } } },
+  });
+  const el = document.getElementById('c-usaha');
+  if (el) new Chart(el, {
+    type: 'bar',
+    data: { labels: usaha.map(x => x.name), datasets: [
+      { label: 'Omzet', data: usaha.map(x => x.revenue), backgroundColor: '#13243B', borderRadius: 2 },
+      { label: 'Profit bersih', data: usaha.map(x => x.net), backgroundColor: '#0B7A68', borderRadius: 2 },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' }, tooltip: tip }, scales: { y: { ticks: tick } } },
+  });
+</script>

@@ -1,0 +1,42 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Akun</h1>
+    <p class="text-sm text-muted mt-0.5">Total saldo <span class="font-semibold text-ink tabular-nums"><%= rupiah(total) %></span></p>
+  </div>
+  <% if (canManage) { %><button class="btn btn-primary" data-open="dlg-acc">Tambah akun</button><% } %>
+</div>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">Nama</th><th class="th">Jenis</th><th class="th num">Saldo awal</th><th class="th num">Saldo sekarang</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% accounts.forEach(a => { %>
+        <tr>
+          <td class="td font-medium"><%= a.name %></td>
+          <td class="td"><%= { kas: 'Kas', bank: 'Bank', ewallet: 'E-wallet' }[a.type] %></td>
+          <td class="td num"><%= rupiah(a.initial_balance) %></td>
+          <td class="td num font-medium <%= a.balance < 0 ? 'text-loss' : '' %>"><%= rupiah(a.balance) %></td>
+          <td class="td text-right whitespace-nowrap">
+            <% if (canManage) { %><button class="btn-link" data-open="dlg-acc" data-action="/akun/<%= a.id %>" data-json="<%= JSON.stringify({ name: a.name, type: a.type, initial_balance: a.initial_balance }) %>">Ubah</button><% } %>
+            <% if (isAdmin) { %>
+              <form method="post" action="/akun/<%= a.id %>/hapus" class="inline ml-3" data-confirm="Hapus akun ini?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% if (canManage) { %>
+<dialog id="dlg-acc" class="dlg">
+  <form method="post" action="/akun" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold"><span data-new-title="Tambah akun" data-edit-title="Ubah akun">Tambah akun</span></h2>
+    <div><label class="lbl" for="acc-name">Nama akun</label><input id="acc-name" name="name" class="field" maxlength="100" required placeholder="Kas Keuangan"></div>
+    <div class="grid grid-cols-2 gap-3">
+      <div><label class="lbl" for="acc-type">Jenis</label><select id="acc-type" name="type" class="field"><option value="kas">Kas</option><option value="bank">Bank</option><option value="ewallet">E-wallet</option></select></div>
+      <div><label class="lbl" for="acc-init">Saldo awal (Rp)</label><input id="acc-init" name="initial_balance" type="number" min="0" step="any" value="0" class="field"></div>
+    </div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<% } %>

@@ -1,0 +1,144 @@
+<%
+  const R = pl.revenueTotal;
+  const pct = (x) => R > 0 ? Math.max(0, Math.min(100, (x / R) * 100)) : 0;
+  const bridge = [
+    { label: 'Omzet', value: R, from: 0, to: 100, tone: 'bg-primary' },
+    { label: 'HPP', value: -pl.hppTotal, from: pct(R - pl.hppTotal), to: 100, tone: 'bg-loss/70' },
+    { label: 'Laba kotor', value: pl.grossProfit, from: 0, to: pct(pl.grossProfit), tone: 'bg-primary' },
+    { label: 'Operasional', value: -pl.opexTotal, from: pct(pl.grossProfit - pl.opexTotal), to: pct(pl.grossProfit), tone: 'bg-loss/70' },
+    { label: 'Profit bersih', value: pl.netProfit, from: 0, to: pct(pl.netProfit), tone: pl.netProfit < 0 ? 'bg-loss' : 'bg-ink' },
+  ];
+  const tone = { sehat: 'border-primary bg-primary/8', waspada: 'border-warn bg-warn/10', perhatian: 'border-loss bg-loss/8', kosong: 'border-line bg-white' }[health.level];
+  const bar = (v, t) => t > 0 ? Math.max(0, Math.min(100, (v / t) * 100)) : 0;
+%>
+<div class="flex flex-wrap items-end justify-between gap-3 mb-6">
+  <div>
+    <h1 class="page-title">Dashboard Keuangan</h1>
+    <p class="text-sm text-muted mt-0.5">Ringkasan <%= per.label %></p>
+  </div>
+  <%- include('partials/month-nav') %>
+</div>
+
+<section aria-label="Ringkasan angka" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+  <% [['Pemasukan', pl.cashIn, ''], ['Pengeluaran', pl.cashOut, ''], ['Laba kotor', pl.grossProfit, 'Margin ' + persen(pl.grossMargin)], ['Profit bersih', pl.netProfit, 'Margin ' + persen(pl.netMargin)]].forEach(([l, val, sub]) => { %>
+    <div class="card p-4">
+      <div class="text-sm text-muted"><%= l %></div>
+      <div class="font-display text-xl sm:text-2xl font-bold mt-1 tabular-nums <%= val < 0 ? 'text-loss' : '' %>"><%= rupiahSingkat(val) %></div>
+      <% if (sub) { %><div class="text-xs text-muted mt-1"><%= sub %></div><% } %>
+    </div>
+  <% }) %>
+</section>
+
+<section class="card p-5 mb-6" aria-labelledby="alur-judul">
+  <div class="flex flex-wrap items-baseline justify-between gap-2 mb-4">
+    <h2 id="alur-judul" class="font-display text-lg font-bold">Dari omzet sampai profit bersih</h2>
+    <% if (trend !== null) { %>
+      <p class="text-sm <%= trend >= 0 ? 'text-primary-dark' : 'text-loss' %>">Profit <%= trend >= 0 ? 'naik' : 'turun' %> <%= Math.abs(trend).toFixed(0) %>% dibanding bulan lalu</p>
+    <% } %>
+  </div>
+  <% if (R <= 0 && pl.opexTotal <= 0) { %>
+    <p class="text-sm text-muted">Belum ada omzet di <%= per.label %>. Catat penjualan atau pemasukan untuk melihat alurnya.</p>
+  <% } else { %>
+    <div class="space-y-2">
+      <% bridge.forEach(b => { %>
+        <div class="grid grid-cols-[6.5rem_1fr_6.5rem] sm:grid-cols-[8rem_1fr_9rem] items-center gap-3 text-sm">
+          <div class="<%= ['Omzet','Laba kotor','Profit bersih'].includes(b.label) ? 'font-semibold' : 'text-muted' %>"><%= b.label %></div>
+          <div class="relative h-6 rounded-sm bg-paper" role="img" aria-label="<%= b.label %>: <%= rupiah(b.value) %>">
+            <div class="absolute inset-y-0 rounded-sm <%= b.tone %>" style="left:<%= b.from.toFixed(2) %>%;width:<%= Math.max(0, b.to - b.from).toFixed(2) %>%"></div>
+          </div>
+          <div class="num <%= b.value < 0 ? 'text-loss' : '' %>"><%= rupiah(b.value) %></div>
+        </div>
+      <% }) %>
+    </div>
+    <% if (pl.otherIncomeTotal > 0) { %><p class="text-xs text-muted mt-3">Profit bersih sudah termasuk pendapatan lain <%= rupiah(pl.otherIncomeTotal) %>.</p><% } %>
+  <% } %>
+  <div class="mt-5 border-l-4 <%= tone %> px-4 py-3 text-sm">
+    <div class="font-semibold"><%= health.title %></div>
+    <div class="text-ink/80"><%= health.message %></div>
+  </div>
+</section>
+
+<div class="grid lg:grid-cols-5 gap-6 mb-6">
+  <section class="card p-5 lg:col-span-3" aria-labelledby="grafik-judul">
+    <h2 id="grafik-judul" class="font-display text-lg font-bold mb-3">Pemasukan dan pengeluaran, 6 bulan</h2>
+    <div class="h-64"><canvas id="chart-bulanan"></canvas></div>
+  </section>
+  <section class="card p-5 lg:col-span-2" aria-labelledby="saldo-judul">
+    <h2 id="saldo-judul" class="font-display text-lg font-bold mb-1">Saldo akun</h2>
+    <p class="text-sm text-muted mb-3">Total <span class="font-semibold text-ink tabular-nums"><%= rupiah(totalBalance) %></span></p>
+    <ul class="divide-y divide-line">
+      <% balances.forEach(a => { %>
+        <li class="flex justify-between py-2 text-sm"><span><%= a.name %></span><span class="tabular-nums <%= a.balance < 0 ? 'text-loss' : '' %>"><%= rupiah(a.balance) %></span></li>
+      <% }) %>
+    </ul>
+  </section>
+</div>
+
+<% if (target && (target.revenue_target > 0 || target.profit_target > 0)) { %>
+<section class="card p-5 mb-6" aria-labelledby="target-judul">
+  <h2 id="target-judul" class="font-display text-lg font-bold mb-3">Target <%= per.label %></h2>
+  <div class="grid sm:grid-cols-2 gap-5 text-sm">
+    <% [['Omzet', R, target.revenue_target], ['Profit bersih', pl.netProfit, target.profit_target]].forEach(([l, real, tgt]) => { if (tgt > 0) { %>
+      <div>
+        <div class="flex justify-between mb-1"><span><%= l %></span><span class="tabular-nums"><%= rupiahSingkat(real) %> dari <%= rupiahSingkat(tgt) %></span></div>
+        <div class="h-3 rounded-sm bg-paper overflow-hidden" role="progressbar" aria-valuenow="<%= Math.round(bar(real, tgt)) %>" aria-valuemin="0" aria-valuemax="100" aria-label="Capaian target <%= l %>"><div class="h-full bg-primary" style="width:<%= bar(real, tgt).toFixed(1) %>%"></div></div>
+        <div class="text-xs text-muted mt-1"><%= Math.round(real / tgt * 100) %>% tercapai</div>
+      </div>
+    <% } }) %>
+  </div>
+</section>
+<% } %>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <section class="card" aria-labelledby="usaha-judul">
+    <h2 id="usaha-judul" class="font-display text-lg font-bold p-5 pb-2">Performa usaha</h2>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead><tr><th class="th">Usaha</th><th class="th num">Omzet</th><th class="th num">Profit</th></tr></thead>
+        <tbody class="divide-y divide-line">
+          <% perf.forEach(p => { %>
+            <tr><td class="td"><%= p.name %></td><td class="td num"><%= rupiah(p.revenue) %></td><td class="td num <%= p.net < 0 ? 'text-loss' : '' %>"><%= rupiah(p.net) %></td></tr>
+          <% }) %>
+          <% if (!perf.length) { %><tr><td class="td text-muted" colspan="3">Belum ada aktivitas usaha di bulan ini.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="card" aria-labelledby="terbaru-judul">
+    <div class="flex items-center justify-between p-5 pb-2">
+      <h2 id="terbaru-judul" class="font-display text-lg font-bold">Transaksi terbaru</h2>
+    </div>
+    <ul class="divide-y divide-line">
+      <% recent.forEach(t => { %>
+        <li class="flex justify-between gap-3 px-5 py-2.5 text-sm">
+          <div class="min-w-0">
+            <div class="truncate"><%= t.description || t.category %></div>
+            <div class="text-xs text-muted"><%= tanggal(t.transaction_date) %> &middot; <%= t.business || 'Umum' %></div>
+          </div>
+          <div class="num font-medium <%= t.type === 'income' ? 'text-primary-dark' : 'text-loss' %>"><%= t.type === 'income' ? '+' : '-' %><%= rupiah(t.amount) %></div>
+        </li>
+      <% }) %>
+      <% if (!recent.length) { %><li class="px-5 py-4 text-sm text-muted">Belum ada transaksi. Mulai dari menu Pemasukan atau Penjualan.</li><% } %>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const s = <%- json(series) %>;
+  new Chart(document.getElementById('chart-bulanan'), {
+    data: {
+      labels: s.map(x => x.label),
+      datasets: [
+        { type: 'bar', label: 'Pemasukan', data: s.map(x => x.income), backgroundColor: '#0B7A68', borderRadius: 2 },
+        { type: 'bar', label: 'Pengeluaran', data: s.map(x => x.expense), backgroundColor: '#D9A0AA', borderRadius: 2 },
+        { type: 'line', label: 'Profit bersih', data: s.map(x => x.net), borderColor: '#13243B', backgroundColor: '#13243B', tension: 0.25, pointRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => c.dataset.label + ': Rp' + Math.round(c.parsed.y).toLocaleString('id-ID') } } },
+      scales: { y: { ticks: { callback: (v) => v >= 1e6 ? (v / 1e6) + ' jt' : v >= 1e3 ? (v / 1e3) + ' rb' : v } } },
+    },
+  });
+</script>

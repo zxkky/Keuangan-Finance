@@ -1,0 +1,108 @@
+<div class="mb-5">
+  <a href="/penjualan" class="btn-link">&lsaquo; Kembali ke penjualan</a>
+  <h1 class="page-title mt-2">Catat penjualan</h1>
+  <p class="text-sm text-muted mt-0.5">Stok berkurang, pemasukan bertambah, dan HPP tercatat otomatis.</p>
+</div>
+<% if (!businesses.length || !products.length) { %>
+  <div class="card p-5 text-sm">Tambahkan usaha dan produk dulu sebelum mencatat penjualan. <a href="/usaha" class="btn-link">Buka daftar usaha</a></div>
+<% } else { %>
+<form method="post" action="/penjualan" id="sale-form" class="card p-5 space-y-5 max-w-3xl">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="grid sm:grid-cols-3 gap-3">
+    <div><label class="lbl" for="s-biz">Usaha</label>
+      <select id="s-biz" name="business_id" class="field" required><% businesses.forEach(b => { %><option value="<%= b.id %>"><%= b.name %></option><% }) %></select></div>
+    <div><label class="lbl" for="s-acc">Uang masuk ke</label>
+      <select id="s-acc" name="account_id" class="field" required><% accounts.forEach(a => { %><option value="<%= a.id %>"><%= a.name %></option><% }) %></select></div>
+    <div><label class="lbl" for="s-date">Tanggal</label><input id="s-date" name="transaction_date" type="date" value="<%= todayStr %>" class="field" required></div>
+  </div>
+
+  <div>
+    <div class="text-sm font-medium mb-2">Barang yang dijual</div>
+    <div id="rows" class="space-y-2"></div>
+    <button type="button" id="add-row" class="btn btn-ghost mt-3">Tambah barang</button>
+  </div>
+
+  <div><label class="lbl" for="s-note">Catatan (opsional)</label><input id="s-note" name="note" maxlength="255" class="field"></div>
+
+  <div class="border-t border-line pt-4 grid sm:grid-cols-3 gap-3 text-sm">
+    <div><div class="text-muted">Total penjualan</div><div id="t-total" class="font-display text-xl font-bold tabular-nums">Rp0</div></div>
+    <div><div class="text-muted">HPP</div><div id="t-cost" class="font-display text-xl font-bold tabular-nums">Rp0</div></div>
+    <div><div class="text-muted">Laba kotor</div><div id="t-profit" class="font-display text-xl font-bold tabular-nums">Rp0</div></div>
+  </div>
+  <div class="flex justify-end gap-2"><a href="/penjualan" class="btn btn-ghost">Batal</a><button class="btn btn-primary">Simpan penjualan</button></div>
+</form>
+
+<template id="row-tpl">
+  <div class="grid grid-cols-12 gap-2 items-end sale-row">
+    <div class="col-span-12 sm:col-span-5"><label class="lbl">Produk</label><select name="product_id[]" class="field p-sel" required></select></div>
+    <div class="col-span-4 sm:col-span-2"><label class="lbl">Jumlah</label><input name="qty[]" type="number" min="1" step="1" value="1" class="field p-qty" required></div>
+    <div class="col-span-8 sm:col-span-4"><label class="lbl">Harga satuan</label><input name="price[]" type="number" min="0" step="any" class="field p-price" required></div>
+    <div class="col-span-12 sm:col-span-1 text-right"><button type="button" class="btn-danger rm-row pb-2">Hapus</button></div>
+    <div class="col-span-12 text-xs text-muted p-info"></div>
+  </div>
+</template>
+
+<script>
+  const PRODUCTS = <%- json(products) %>;
+  const rp = (n) => (n < 0 ? '-Rp' : 'Rp') + Math.abs(Math.round(n)).toLocaleString('id-ID');
+  const bizSel = document.getElementById('s-biz');
+  const rowsEl = document.getElementById('rows');
+  const tpl = document.getElementById('row-tpl');
+
+  const productsForBiz = () => PRODUCTS.filter((p) => String(p.business_id) === bizSel.value);
+
+  function fillSelect(sel) {
+    const list = productsForBiz();
+    sel.innerHTML = list.length
+      ? list.map((p) => `<option value="${p.id}" ${p.stock < 1 ? 'disabled' : ''}>${p.name} (stok ${p.stock})</option>`).join('')
+      : '<option value="">Belum ada produk di usaha ini</option>';
+  }
+
+  function syncRow(row) {
+    const p = PRODUCTS.find((x) => String(x.id) === row.querySelector('.p-sel').value);
+    const price = row.querySelector('.p-price');
+    const qty = row.querySelector('.p-qty');
+    if (p) {
+      qty.max = p.stock;
+      row.querySelector('.p-info').textContent = `HPP ${rp(p.cost_price)} per unit, stok tersedia ${p.stock}`;
+    }
+    return p;
+  }
+
+  function addRow() {
+    const row = tpl.content.firstElementChild.cloneNode(true);
+    const sel = row.querySelector('.p-sel');
+    fillSelect(sel);
+    // pilih produk pertama yang masih ada stoknya
+    const first = productsForBiz().find((p) => p.stock > 0);
+    if (first) sel.value = first.id;
+    const p = syncRow(row);
+    if (p) row.querySelector('.p-price').value = p.selling_price;
+    sel.addEventListener('change', () => { const q = syncRow(row); if (q) row.querySelector('.p-price').value = q.selling_price; totals(); });
+    row.querySelectorAll('input').forEach((i) => i.addEventListener('input', totals));
+    row.querySelector('.rm-row').addEventListener('click', () => { if (rowsEl.children.length > 1) { row.remove(); totals(); } });
+    rowsEl.appendChild(row);
+    totals();
+  }
+
+  function totals() {
+    let total = 0, cost = 0;
+    rowsEl.querySelectorAll('.sale-row').forEach((row) => {
+      const p = PRODUCTS.find((x) => String(x.id) === row.querySelector('.p-sel').value);
+      const q = Number(row.querySelector('.p-qty').value) || 0;
+      const pr = Number(row.querySelector('.p-price').value) || 0;
+      total += q * pr;
+      if (p) cost += q * p.cost_price;
+    });
+    document.getElementById('t-total').textContent = rp(total);
+    document.getElementById('t-cost').textContent = rp(cost);
+    const profit = document.getElementById('t-profit');
+    profit.textContent = rp(total - cost);
+    profit.classList.toggle('text-loss', total - cost < 0);
+  }
+
+  bizSel.addEventListener('change', () => { rowsEl.innerHTML = ''; addRow(); });
+  document.getElementById('add-row').addEventListener('click', addRow);
+  addRow();
+</script>
+<% } %>

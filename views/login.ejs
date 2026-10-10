@@ -1,0 +1,19 @@
+<div class="w-full max-w-sm">
+  <div class="mb-6 text-white">
+    <h1 class="font-display text-3xl font-bold">Keuangan Finance</h1>
+    <p class="text-white/70 text-sm mt-1">Catat uang masuk dan keluar, pantau laba setiap usaha.</p>
+  </div>
+  <form method="post" action="/login" class="bg-white rounded-md p-6 space-y-4">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <% if (flash) { %><div role="alert" class="rounded-md border border-loss/40 bg-loss/10 text-loss text-sm px-3 py-2"><%= flash.msg %></div><% } %>
+    <div>
+      <label class="lbl" for="email">Email</label>
+      <input class="field" id="email" name="email" type="email" autocomplete="username" required autofocus>
+    </div>
+    <div>
+      <label class="lbl" for="password">Password</label>
+      <input class="field" id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn-primary w-full">Masuk</button>
+  </form>
+</div>

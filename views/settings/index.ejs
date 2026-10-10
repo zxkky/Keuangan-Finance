@@ -1,0 +1,37 @@
+<h1 class="page-title mb-5">Pengaturan</h1>
+<div class="grid lg:grid-cols-2 gap-6">
+  <section class="card p-5" aria-labelledby="target-judul">
+    <h2 id="target-judul" class="font-display text-lg font-bold mb-1">Target bulanan</h2>
+    <p class="text-sm text-muted mb-4">Capaian target tampil di dashboard bulan terkait.</p>
+    <% if (canManage) { %>
+    <form method="post" action="/pengaturan/target" class="space-y-3">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="lbl" for="t-month">Bulan</label><input id="t-month" type="month" name="month" value="<%= per.month %>" class="field" required></div>
+        <div><label class="lbl" for="t-rev">Target omzet (Rp)</label><input id="t-rev" type="number" min="0" step="any" name="revenue_target" value="<%= current ? current.revenue_target : '' %>" class="field"></div>
+        <div><label class="lbl" for="t-profit">Target profit (Rp)</label><input id="t-profit" type="number" min="0" step="any" name="profit_target" value="<%= current ? current.profit_target : '' %>" class="field"></div>
+      </div>
+      <button class="btn btn-primary">Simpan target</button>
+    </form>
+    <% } %>
+    <% if (targets.length) { %>
+      <table class="w-full mt-5 text-sm">
+        <thead><tr><th class="th pl-0">Bulan</th><th class="th num">Omzet</th><th class="th num">Profit</th></tr></thead>
+        <tbody class="divide-y divide-line">
+          <% targets.forEach(t => { %><tr><td class="td pl-0"><%= t.month %></td><td class="td num"><%= rupiah(t.revenue_target) %></td><td class="td num"><%= rupiah(t.profit_target) %></td></tr><% }) %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+
+  <section class="card p-5 self-start" aria-labelledby="pw-judul">
+    <h2 id="pw-judul" class="font-display text-lg font-bold mb-4">Ganti password</h2>
+    <form method="post" action="/pengaturan/password" class="space-y-3">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <div><label class="lbl" for="pw-cur">Password saat ini</label><input id="pw-cur" type="password" name="current" autocomplete="current-password" class="field" required></div>
+      <div><label class="lbl" for="pw-new">Password baru (minimal 8 karakter)</label><input id="pw-new" type="password" name="next" minlength="8" autocomplete="new-password" class="field" required></div>
+      <div><label class="lbl" for="pw-conf">Ulangi password baru</label><input id="pw-conf" type="password" name="confirm" minlength="8" autocomplete="new-password" class="field" required></div>
+      <button class="btn btn-primary">Ganti password</button>
+    </form>
+  </section>
+</div>

@@ -1,0 +1,39 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Penjualan</h1>
+    <p class="text-sm text-muted mt-0.5"><%= per.label %>: omzet <span class="font-semibold text-ink tabular-nums"><%= rupiah(totals.revenue) %></span>, laba kotor <span class="font-semibold text-ink tabular-nums"><%= rupiah(totals.revenue - totals.cost) %></span></p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <%- include('../partials/month-nav', { keep: { business_id: filters.businessId } }) %>
+    <% if (canManage) { %><a href="/penjualan/baru" class="btn btn-primary">Catat penjualan</a><% } %>
+  </div>
+</div>
+<form method="get" class="mb-4">
+  <input type="hidden" name="month" value="<%= per.month %>">
+  <select name="business_id" class="field !w-auto" aria-label="Filter usaha" onchange="this.form.submit()">
+    <option value="">Semua usaha</option>
+    <% businesses.forEach(b => { %><option value="<%= b.id %>" <%= filters.businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+  </select>
+</form>
+<div class="card overflow-x-auto">
+  <table class="w-full">
+    <thead><tr><th class="th">No.</th><th class="th">Tanggal</th><th class="th">Usaha</th><th class="th">Barang</th><th class="th num">Total</th><th class="th num">HPP</th><th class="th num">Laba kotor</th><th class="th"></th></tr></thead>
+    <tbody class="divide-y divide-line">
+      <% sales.forEach(s => { %>
+        <tr>
+          <td class="td">#<%= s.id %></td>
+          <td class="td whitespace-nowrap"><%= tanggal(s.transaction_date) %></td>
+          <td class="td"><%= s.business %><div class="text-xs text-muted"><%= s.account %></div></td>
+          <td class="td"><% (itemsBySale[s.id] || []).forEach(i => { %><div><%= i.name %> x<%= i.quantity %> <span class="text-xs text-muted">@ <%= rupiah(i.price) %></span></div><% }) %></td>
+          <td class="td num"><%= rupiah(s.total) %></td>
+          <td class="td num"><%= rupiah(s.total_cost) %></td>
+          <td class="td num font-medium"><%= rupiah(s.total - s.total_cost) %></td>
+          <td class="td text-right"><% if (canManage) { %>
+            <form method="post" action="/penjualan/<%= s.id %>/batal" data-confirm="Batalkan penjualan ini? Stok dikembalikan dan pemasukannya dihapus."><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Batalkan</button></form>
+          <% } %></td>
+        </tr>
+      <% }) %>
+      <% if (!sales.length) { %><tr><td class="td text-muted" colspan="8">Belum ada penjualan di <%= per.label %>.</td></tr><% } %>
+    </tbody>
+  </table>
+</div>

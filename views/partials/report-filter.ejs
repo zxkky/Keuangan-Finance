@@ -1,0 +1,15 @@
+<form method="get" class="flex flex-wrap items-end gap-2 mb-5">
+  <div><label class="lbl" for="f-from">Dari</label><input id="f-from" type="date" name="from" value="<%= from %>" class="field"></div>
+  <div><label class="lbl" for="f-to">Sampai</label><input id="f-to" type="date" name="to" value="<%= to %>" class="field"></div>
+  <div><label class="lbl" for="f-biz">Usaha</label>
+    <select id="f-biz" name="business_id" class="field">
+      <option value="">Semua usaha</option>
+      <% businesses.forEach(b => { %><option value="<%= b.id %>" <%= businessId === b.id ? 'selected' : '' %>><%= b.name %></option><% }) %>
+    </select></div>
+  <button class="btn btn-primary">Tampilkan</button>
+  <% const q = new URLSearchParams({ from, to, ...(businessId ? { business_id: businessId } : {}) }).toString(); %>
+  <span class="ml-auto flex gap-2">
+    <a class="btn btn-ghost" href="/laporan/<%= kind %>/export?format=pdf&<%= q %>">Export PDF</a>
+    <a class="btn btn-ghost" href="/laporan/<%= kind %>/export?format=xlsx&<%= q %>">Export Excel</a>
+  </span>
+</form>

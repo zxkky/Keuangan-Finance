@@ -1,0 +1,39 @@
+<div class="flex flex-wrap items-end justify-between gap-3 mb-5">
+  <div>
+    <h1 class="page-title">Kategori</h1>
+    <p class="text-sm text-muted mt-0.5 max-w-xl">Kelompok laporan menentukan di mana kategori muncul: omzet, HPP, biaya operasional, atau hanya arus kas.</p>
+  </div>
+  <% if (isAdmin) { %><button class="btn btn-primary" data-open="dlg-cat">Tambah kategori</button><% } %>
+</div>
+<% [['income', 'Pemasukan'], ['expense', 'Pengeluaran']].forEach(([t, title]) => { %>
+  <h2 class="font-display text-lg font-bold mb-2 <%= t === 'expense' ? 'mt-6' : '' %>"><%= title %></h2>
+  <div class="card overflow-x-auto">
+    <table class="w-full">
+      <thead><tr><th class="th">Nama</th><th class="th">Kelompok laporan</th><th class="th"></th></tr></thead>
+      <tbody class="divide-y divide-line">
+        <% categories.filter(c => c.type === t).forEach(c => { %>
+          <tr>
+            <td class="td font-medium"><%= c.name %></td>
+            <td class="td"><%= CATEGORY_TYPES[c.category_type] %></td>
+            <td class="td text-right"><% if (isAdmin) { %>
+              <form method="post" action="/kategori/<%= c.id %>/hapus" data-confirm="Hapus kategori ini?"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn-danger">Hapus</button></form>
+            <% } %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% }) %>
+<% if (isAdmin) { %>
+<dialog id="dlg-cat" class="dlg">
+  <form method="post" action="/kategori" class="p-5 space-y-3">
+    <input type="hidden" name="_csrf" value="<%= csrf %>">
+    <h2 class="font-display text-lg font-bold">Tambah kategori</h2>
+    <div><label class="lbl" for="c-name">Nama</label><input id="c-name" name="name" maxlength="100" class="field" required></div>
+    <div><label class="lbl" for="c-type">Jenis</label><select id="c-type" name="type" class="field"><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select></div>
+    <div><label class="lbl" for="c-ct">Kelompok laporan</label>
+      <select id="c-ct" name="category_type" class="field"><% Object.entries(CATEGORY_TYPES).forEach(([k, label]) => { %><option value="<%= k %>"><%= label %></option><% }) %></select></div>
+    <div class="flex justify-end gap-2 pt-2"><button type="button" class="btn btn-ghost" data-close>Batal</button><button class="btn btn-primary">Simpan</button></div>
+  </form>
+</dialog>
+<% } %>
