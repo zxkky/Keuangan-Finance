@@ -1,4 +1,4 @@
-# g
+# Keuangan Finance
 
 Sistem manajemen keuangan dan usaha. Node.js, Express, EJS, Tailwind CSS (CDN), MySQL, Chart.js.
 
